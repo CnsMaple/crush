@@ -444,11 +444,11 @@ func (c *Commands) defaultCommands() []*CommandItem {
 	if agentCfg, ok := cfg.Agents[config.AgentCoder]; ok {
 		providerCfg := cfg.GetProviderForModel(agentCfg.Model)
 		model := cfg.GetModelByType(agentCfg.Model)
-		if providerCfg != nil && model != nil && model.CanReason {
+		if model != nil && cfg.SupportsThinkingToggle(*model, providerCfg) {
 			selectedModel := cfg.Models[agentCfg.Model]
 
 			// Anthropic models: thinking toggle
-			if model.CanReason && len(model.ReasoningLevels) == 0 {
+			if len(model.ReasoningLevels) == 0 {
 				status := "Enable"
 				if selectedModel.Think {
 					status = "Disable"

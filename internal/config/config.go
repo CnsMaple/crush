@@ -635,6 +635,25 @@ func (c *Config) GetModelByType(modelType SelectedModelType) *catwalk.Model {
 	return c.GetModel(model.Provider, model.Model)
 }
 
+// SupportsThinkingToggle reports whether the model exposes a user-facing
+// thinking toggle. The default check is catwalk's CanReason flag, but some
+// Anthropic-compatible providers (notably MiniMax and MiniMax China) ship
+// models whose thinking support is not declared in the bundled provider
+// catalog, so we force-enable the toggle for them.
+func (c *Config) SupportsThinkingToggle(model catwalk.Model, providerCfg *ProviderConfig) bool {
+	if providerCfg == nil {
+		return false
+	}
+	if model.CanReason {
+		return true
+	}
+	switch providerCfg.ID {
+	case string(catwalk.InferenceProviderMiniMax), string(catwalk.InferenceProviderMiniMaxChina):
+		return true
+	}
+	return false
+}
+
 func (c *Config) LargeModel() *catwalk.Model {
 	model, ok := c.Models[SelectedModelTypeLarge]
 	if !ok {

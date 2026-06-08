@@ -404,6 +404,19 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) fantasy.
 			}
 			mergedOptions["extra_body"] = extraBody
 
+		case string(catwalk.InferenceProviderMiniMax), string(catwalk.InferenceProviderMiniMaxChina):
+			// MiniMax exposes Anthropic-compatible thinking. Always inject the
+			// `thinking.type` field (the API defaults to enabled when the field
+			// is omitted, so M2.x models stay on regardless of the toggle).
+			if !hasThink {
+				if model.ModelCfg.Think {
+					extraBody["thinking"] = map[string]any{"type": "adaptive"}
+				} else {
+					extraBody["thinking"] = map[string]any{"type": "disabled"}
+				}
+			}
+			mergedOptions["extra_body"] = extraBody
+
 		default:
 			switch {
 			case !hasEffort && shouldSetEffort:
@@ -981,7 +994,10 @@ func (c *coordinator) buildProvider(providerCfg config.ProviderConfig, model con
 	}
 
 	// handle special headers for anthropic
-	if providerCfg.Type == anthropic.Name && c.isAnthropicThinking(model) {
+	if providerCfg.Type == anthropic.Name &&
+		providerCfg.ID != string(catwalk.InferenceProviderMiniMax) &&
+		providerCfg.ID != string(catwalk.InferenceProviderMiniMaxChina) &&
+		c.isAnthropicThinking(model) {
 		if v, ok := headers["anthropic-beta"]; ok {
 			headers["anthropic-beta"] = v + ",interleaved-thinking-2025-05-14"
 		} else {

@@ -426,3 +426,51 @@ func TestGetProviderOptionsReasoningEffort(t *testing.T) {
 		})
 	}
 }
+
+func TestGetProviderOptionsMiniMaxThinking(t *testing.T) {
+	// MiniMax / MiniMax China speak the Anthropic-compatible thinking protocol,
+	// but their catwalk catalog does not declare CanReason. The provider
+	// options must still land under anthropic.Name and carry the `thinking`
+	// extra body so the toggle is honored.
+	tests := []struct {
+		name       string
+		providerID catwalk.InferenceProvider
+		think      bool
+		wantType   string
+	}{
+		{"minimax-china think=true", catwalk.InferenceProviderMiniMaxChina, true, "adaptive"},
+		{"minimax-china think=false", catwalk.InferenceProviderMiniMaxChina, false, "disabled"},
+		{"minimax think=true", catwalk.InferenceProviderMiniMax, true, "adaptive"},
+		{"minimax think=false", catwalk.InferenceProviderMiniMax, false, "disabled"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			model := Model{
+				CatwalkCfg: catwalk.Model{
+					ID:        "MiniMax-M3",
+					CanReason: false,
+				},
+				ModelCfg: config.SelectedModel{
+					Provider: string(tc.providerID),
+					Model:    "MiniMax-M3",
+					Think:    tc.think,
+				},
+			}
+			providerCfg := config.ProviderConfig{
+				ID:   string(tc.providerID),
+				Type: catwalk.Type(anthropic.Name),
+			}
+
+			opts := getProviderOptions(model, providerCfg)
+
+			raw, ok := opts[anthropic.Name]
+			require.True(t, ok, "options should be keyed under anthropic.Name")
+			parsed, ok := raw.(*anthropic.ProviderOptions)
+			require.True(t, ok)
+			require.NotNil(t, parsed.ExtraBody, "extra_body should be set for MiniMax providers")
+			thinking, ok := parsed.ExtraBody["thinking"].(map[string]any)
+			require.True(t, ok, "extra_body should contain a thinking object")
+			assert.Equal(t, tc.wantType, thinking["type"])
+		})
+	}
+}
