@@ -1637,6 +1637,18 @@ func (a *sessionAgent) generateTitle(ctx context.Context, sessionID string, user
 		return
 	}
 
+	// local fork: skip LLM-generated titles and use the prompt as the title.
+	if os.Getenv("CRUSH_LLM_TITLE") == "" {
+		title := userPrompt
+		if runes := []rune(title); len(runes) > 50 {
+			title = string(runes[:50]) + "…"
+		}
+		if err := a.sessions.Rename(ctx, sessionID, title); err != nil {
+			slog.Error("Failed to save session title", "error", err)
+		}
+		return
+	}
+
 	smallModel := a.smallModel.Get()
 	largeModel := a.largeModel.Get()
 	systemPromptPrefix := a.systemPromptPrefix.Get()
