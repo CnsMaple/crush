@@ -3,18 +3,24 @@ package model
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/charmbracelet/crush/internal/message"
 )
 
-// promptHistoryLoadedMsg is sent when prompt history is loaded.
+// promptHistoryLoadedMsg is sent when prompt history is loaded from the
+// database. Carries full message rows so the handler can both render
+// history (text) and seed the seenIDs set used to dedupe incremental
+// pubsub updates.
 type promptHistoryLoadedMsg struct {
-	messages []string
+	messages []message.Message
 }
 
-// loadPromptHistory loads user messages for history navigation.
+// loadPromptHistory loads user messages for history navigation. Used
+// only on initial load and session switches — incremental updates come
+// from pubsub.Event[message.Message].CreatedEvent.
 func (m *UI) loadPromptHistory() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
@@ -30,15 +36,47 @@ func (m *UI) loadPromptHistory() tea.Cmd {
 			slog.Error("Failed to load prompt history", "error", err)
 			return promptHistoryLoadedMsg{messages: nil}
 		}
-
-		texts := make([]string, 0, len(messages))
-		for _, msg := range messages {
-			if text := msg.Content().Text; text != "" {
-				texts = append(texts, text)
-			}
-		}
-		return promptHistoryLoadedMsg{messages: texts}
+		return promptHistoryLoadedMsg{messages: messages}
 	}
+}
+
+// extractPromptHistoryTexts turns the loaded messages into the history
+// string slice, preserving the database's DESC order (most recent
+// first). Empty texts are skipped.
+func (m *UI) extractPromptHistoryTexts(messages []message.Message) []string {
+	out := make([]string, 0, len(messages))
+	for _, msg := range messages {
+		if text := strings.TrimSpace(msg.Content().Text); text != "" {
+			out = append(out, text)
+		}
+	}
+	return out
+}
+
+// recordUserMessageInHistory prepends a newly created user message to
+// the in-memory history. Called from the pubsub event handler so the
+// up arrow works as soon as the agent persists the user message — no
+// separate DB read or merge required.
+func (m *UI) recordUserMessageInHistory(msg message.Message) {
+	text := strings.TrimSpace(msg.Content().Text)
+	if text == "" {
+		return
+	}
+	if msg.ID != "" {
+		if m.promptHistory.seenIDs == nil {
+			m.promptHistory.seenIDs = make(map[string]struct{})
+		}
+		if _, ok := m.promptHistory.seenIDs[msg.ID]; ok {
+			return
+		}
+		m.promptHistory.seenIDs[msg.ID] = struct{}{}
+	}
+	// Skip if the front entry is already this text (e.g. reload raced
+	// ahead and the same prompt is at index 0).
+	if len(m.promptHistory.messages) > 0 && m.promptHistory.messages[0] == text {
+		return
+	}
+	m.promptHistory.messages = append([]string{text}, m.promptHistory.messages...)
 }
 
 // handleHistoryUp handles up arrow for history navigation.

@@ -281,10 +281,14 @@ type UI struct {
 	hyperCredits *int
 
 	// Prompt history for up/down navigation through previous messages.
+	// messages mirrors the database in DESC order (most recent first).
+	// seenIDs is used to dedupe entries arriving from the
+	// pubsub.Event[message.Message] stream.
 	promptHistory struct {
 		messages []string
 		index    int
 		draft    string
+		seenIDs  map[string]struct{}
 	}
 }
 
@@ -655,7 +659,16 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case promptHistoryLoadedMsg:
-		m.promptHistory.messages = msg.messages
+		// Replace the local cache with the authoritative DB snapshot.
+		// seenIDs is seeded from the same set so the next
+		// pubsub.Event[message.Message].CreatedEvent can dedupe.
+		m.promptHistory.messages = m.extractPromptHistoryTexts(msg.messages)
+		m.promptHistory.seenIDs = make(map[string]struct{}, len(msg.messages))
+		for _, mm := range msg.messages {
+			if mm.ID != "" {
+				m.promptHistory.seenIDs[mm.ID] = struct{}{}
+			}
+		}
 		m.promptHistory.index = -1
 		m.promptHistory.draft = ""
 
@@ -682,6 +695,13 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.autoExpandPillsIfReasonable()
 		}
 	case pubsub.Event[message.Message]:
+		// Update prompt history regardless of session scope: when a new
+		// user message is persisted (any session) the up arrow should
+		// see it on the next render. This is the single source of truth
+		// for the "send -> recall" flow.
+		if msg.Type == pubsub.CreatedEvent && msg.Payload.Role == message.User {
+			m.recordUserMessageInHistory(msg.Payload)
+		}
 		// Check if this is a child session message for an agent tool.
 		if m.session == nil {
 			break
@@ -1991,7 +2011,7 @@ func (m *UI) handleKeyPressMsg(msg tea.KeyPressMsg) tea.Cmd {
 				m.randomizePlaceholders()
 				m.historyReset()
 
-				return tea.Batch(m.sendMessage(value, attachments...), m.loadPromptHistory())
+				return tea.Batch(m.sendMessage(value, attachments...))
 			case key.Matches(msg, m.keyMap.Chat.NewSession):
 				if !m.hasSession() {
 					break
