@@ -57,6 +57,12 @@ type (
 		Style string
 	}
 	ActionToggleTransparentBackground struct{}
+	// ActionSetTheme is sent from the theme picker dialog to set the
+	// active TUI theme (one of "auto", "dark", "light"). The UI
+	// applies the change live and persists it via the config store.
+	ActionSetTheme struct {
+		Theme string
+	}
 	ActionInitializeProject           struct{}
 	ActionSummarize                   struct {
 		SessionID string

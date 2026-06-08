@@ -55,6 +55,10 @@ type quickStyleOpts struct {
 	success           color.Color
 	successMoreSubtle color.Color
 	successMostSubtle color.Color
+
+	// diffStyle supplies the diff-view line styles. If nil, the dark
+	// defaults are used.
+	diffStyle func() diffview.Style
 }
 
 // quickStyle builds the default Styles (that is, the default theme, Charmtone
@@ -505,57 +509,10 @@ func quickStyle(o quickStyleOpts) Styles {
 		FullSeparator:  base.Foreground(o.separator),
 	}
 
-	s.Diff = diffview.Style{
-		DividerLine: diffview.LineStyle{
-			LineNumber: lipgloss.NewStyle().
-				Foreground(o.fgSubtle).
-				Background(o.bgLeastVisible),
-			Code: lipgloss.NewStyle().
-				Foreground(o.fgSubtle).
-				Background(o.bgLeastVisible),
-		},
-		MissingLine: diffview.LineStyle{
-			LineNumber: lipgloss.NewStyle().
-				Background(o.bgLeastVisible),
-			Code: lipgloss.NewStyle().
-				Background(o.bgLeastVisible),
-		},
-		EqualLine: diffview.LineStyle{
-			LineNumber: lipgloss.NewStyle().
-				Foreground(o.fgMoreSubtle).
-				Background(o.bgBase),
-			Code: lipgloss.NewStyle().
-				Foreground(o.fgMoreSubtle).
-				Background(o.bgBase),
-		},
-		InsertLine: diffview.LineStyle{
-			LineNumber: lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#629657")).
-				Background(lipgloss.Color("#2b322a")),
-			Symbol: lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#629657")).
-				Background(lipgloss.Color("#323931")),
-			Code: lipgloss.NewStyle().
-				Background(lipgloss.Color("#323931")),
-		},
-		DeleteLine: diffview.LineStyle{
-			LineNumber: lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#a45c59")).
-				Background(lipgloss.Color("#312929")),
-			Symbol: lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#a45c59")).
-				Background(lipgloss.Color("#383030")),
-			Code: lipgloss.NewStyle().
-				Background(lipgloss.Color("#383030")),
-		},
-		Filename: diffview.LineStyle{
-			LineNumber: lipgloss.NewStyle().
-				Foreground(o.fgSubtle).
-				Background(o.bgLeastVisible),
-			Code: lipgloss.NewStyle().
-				Foreground(o.fgSubtle).
-				Background(o.bgLeastVisible),
-		},
+	if o.diffStyle != nil {
+		s.Diff = o.diffStyle()
+	} else {
+		s.Diff = diffview.DefaultPanteraStyle()
 	}
 
 	s.FilePicker = filepicker.Styles{

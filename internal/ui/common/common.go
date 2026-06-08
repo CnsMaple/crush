@@ -33,9 +33,16 @@ func (c *Common) Config() *config.Config {
 
 // DefaultCommon returns the default common UI configurations. When the
 // workspace has a large model selected, the theme is chosen based on its
-// provider; otherwise the default theme is used.
+// provider unless the user has explicitly set "options.tui.theme" in
+// their config.
 func DefaultCommon(ws workspace.Workspace) *Common {
-	s := styles.ThemeForProvider(largeModelProviderID(ws))
+	theme := ""
+	if ws != nil {
+		if cfg := ws.Config(); cfg != nil && cfg.Options != nil && cfg.Options.TUI != nil {
+			theme = cfg.Options.TUI.Theme
+		}
+	}
+	s := styles.ThemeFor(theme, largeModelProviderID(ws))
 	return &Common{
 		Workspace: ws,
 		Styles:    &s,

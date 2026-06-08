@@ -82,6 +82,65 @@ func DefaultLightStyle() Style {
 	}
 }
 
+// DefaultPanteraStyle provides the dark diff-view style used by the
+// Charmtone Pantera and Hypercrush Obsidiana themes. It pairs a
+// bgBase/bgLeastVisible neutral background with hand-picked green/red
+// insert/delete palettes that read well on the CharmTone dark surfaces.
+func DefaultPanteraStyle() Style {
+	return Style{
+		DividerLine: LineStyle{
+			LineNumber: lipgloss.NewStyle().
+				Foreground(charmtone.Smoke).
+				Background(charmtone.BBQ),
+			Code: lipgloss.NewStyle().
+				Foreground(charmtone.Smoke).
+				Background(charmtone.BBQ),
+		},
+		MissingLine: LineStyle{
+			LineNumber: lipgloss.NewStyle().
+				Background(charmtone.BBQ),
+			Code: lipgloss.NewStyle().
+				Background(charmtone.BBQ),
+		},
+		EqualLine: LineStyle{
+			LineNumber: lipgloss.NewStyle().
+				Foreground(charmtone.Squid).
+				Background(charmtone.Pepper),
+			Code: lipgloss.NewStyle().
+				Foreground(charmtone.Squid).
+				Background(charmtone.Pepper),
+		},
+		InsertLine: LineStyle{
+			LineNumber: lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#629657")).
+				Background(lipgloss.Color("#2b322a")),
+			Symbol: lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#629657")).
+				Background(lipgloss.Color("#323931")),
+			Code: lipgloss.NewStyle().
+				Background(lipgloss.Color("#323931")),
+		},
+		DeleteLine: LineStyle{
+			LineNumber: lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#a45c59")).
+				Background(lipgloss.Color("#312929")),
+			Symbol: lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#a45c59")).
+				Background(lipgloss.Color("#383030")),
+			Code: lipgloss.NewStyle().
+				Background(lipgloss.Color("#383030")),
+		},
+		Filename: LineStyle{
+			LineNumber: lipgloss.NewStyle().
+				Foreground(charmtone.Smoke).
+				Background(charmtone.BBQ),
+			Code: lipgloss.NewStyle().
+				Foreground(charmtone.Smoke).
+				Background(charmtone.BBQ),
+		},
+	}
+}
+
 // DefaultDarkStyle provides a default dark theme style for the diff view.
 func DefaultDarkStyle() Style {
 	return Style{

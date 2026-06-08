@@ -529,6 +529,13 @@ func (c *Commands) defaultCommands() []*CommandItem {
 	}
 	commands = append(commands, NewCommandItem(c.com.Styles, "toggle_transparent", transparentLabel, "", ActionToggleTransparentBackground{}))
 
+	// Add theme picker.
+	themeLabel := "Theme: Auto"
+	if cfg != nil && cfg.Options != nil && cfg.Options.TUI != nil && cfg.Options.TUI.Theme != "" {
+		themeLabel = "Theme: " + cfg.Options.TUI.Theme
+	}
+	commands = append(commands, NewCommandItem(c.com.Styles, "select_theme", themeLabel, "", ActionOpenDialog{DialogID: ThemesID}))
+
 	commands = append(
 		commands,
 		NewCommandItem(c.com.Styles, "quit", "Quit", "ctrl+q", tea.QuitMsg{}).WithAliases("exit"),

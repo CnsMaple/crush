@@ -1540,6 +1540,33 @@ func (m *UI) handleDialogMsg(msg tea.Msg) tea.Cmd {
 			return util.NewInfoMsg("Transparent background " + status)
 		})
 		m.dialog.CloseDialog(dialog.CommandsID)
+	case dialog.ActionSetTheme:
+		cmds = append(cmds, func() tea.Msg {
+			cfg := m.com.Config()
+			if cfg == nil {
+				return util.ReportError(errors.New("configuration not found"))()
+			}
+
+			theme := msg.Theme
+			switch theme {
+			case styles.ThemeAuto, styles.ThemeDark, styles.ThemeLight:
+			default:
+				return util.ReportError(fmt.Errorf("unknown theme %q", theme))()
+			}
+
+			if err := m.com.Workspace.SetConfigField(config.ScopeGlobal, "options.tui.theme", theme); err != nil {
+				return util.ReportError(err)()
+			}
+
+			providerID := ""
+			if cfg.Models[config.SelectedModelTypeLarge].Provider != "" {
+				providerID = cfg.Models[config.SelectedModelTypeLarge].Provider
+			}
+			m.applyTheme(styles.ThemeFor(theme, providerID))
+
+			return util.NewInfoMsg("Theme set to: " + theme)
+		})
+		m.dialog.CloseDialog(dialog.ThemesID)
 	case dialog.ActionQuit:
 		cmds = append(cmds, tea.Quit)
 	case dialog.ActionEnableDockerMCP:
@@ -1764,8 +1791,13 @@ func (m *UI) handleSelectModel(msg dialog.ActionSelectModel) tea.Cmd {
 	} else {
 		if msg.ModelType == config.SelectedModelTypeLarge {
 			// Swap the theme live based on the newly selected large
-			// model's provider.
-			m.applyTheme(styles.ThemeForProvider(providerID))
+			// model's provider and the user's "options.tui.theme"
+			// preference.
+			theme := ""
+			if cfg.Options != nil && cfg.Options.TUI != nil {
+				theme = cfg.Options.TUI.Theme
+			}
+			m.applyTheme(styles.ThemeFor(theme, providerID))
 		}
 		if _, ok := cfg.Models[config.SelectedModelTypeSmall]; !ok {
 			// Ensure small model is set is unset.
@@ -3415,6 +3447,10 @@ func (m *UI) openDialog(id string) tea.Cmd {
 		if cmd := m.openNotificationsDialog(); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
+	case dialog.ThemesID:
+		if cmd := m.openThemesDialog(); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 	case dialog.FilePickerID:
 		if cmd := m.openFilesDialog(); cmd != nil {
 			cmds = append(cmds, cmd)
@@ -3513,6 +3549,18 @@ func (m *UI) openNotificationsDialog() tea.Cmd {
 
 	notificationsDialog := dialog.NewNotifications(m.com)
 	m.dialog.OpenDialog(notificationsDialog)
+	return nil
+}
+
+// openThemesDialog opens the theme picker dialog.
+func (m *UI) openThemesDialog() tea.Cmd {
+	if m.dialog.ContainsDialog(dialog.ThemesID) {
+		m.dialog.BringToFront(dialog.ThemesID)
+		return nil
+	}
+
+	themesDialog := dialog.NewThemes(m.com)
+	m.dialog.OpenDialog(themesDialog)
 	return nil
 }
 
