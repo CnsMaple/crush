@@ -121,12 +121,17 @@ func HypercrushObsidiana() Styles {
 // ramp for backgrounds and the dark end for text, and picks more
 // saturated/darker variants of the brand and status colors so they
 // remain readable on a white background.
+//
+// The brand and accent colors lean into the dark-green end of the
+// CharmTone palette (Pickle, Guac, Lichen) so the overall feel is
+// a green-tinted light theme. Errors and warnings keep warm reds
+// and browns so destructive actions remain distinguishable.
 func CharmtoneLigera() Styles {
-	return quickStyle(quickStyleOpts{
-		primary:   charmtone.Charple,
-		secondary: charmtone.Ox,
-		accent:    charmtone.Pickle,
-		keyword:   charmtone.Prince,
+	s := quickStyle(quickStyleOpts{
+		primary:   charmtone.Pickle,
+		secondary: charmtone.Guac,
+		accent:    charmtone.Lichen,
+		keyword:   charmtone.Bok,
 
 		fgBase:       charmtone.Pepper,
 		fgMoreSubtle: charmtone.Squid,
@@ -148,12 +153,98 @@ func CharmtoneLigera() Styles {
 		warning:           charmtone.Paprika,
 		denied:            charmtone.Paprika,
 		busy:              charmtone.Zinc,
-		info:              charmtone.Damson,
-		infoMoreSubtle:    charmtone.Oceania,
-		infoMostSubtle:    charmtone.Ox,
+		info:              charmtone.Guac,
+		infoMoreSubtle:    charmtone.Lichen,
+		infoMostSubtle:    charmtone.Zinc,
 		success:           charmtone.Pickle,
 		successMoreSubtle: charmtone.Gator,
 		successMostSubtle: charmtone.Spinach,
 		diffStyle:         diffview.DefaultLightStyle,
 	})
+
+	// Override the status-bar pill colors. quickStyle's defaults were
+	// written for a dark background and produce a near-black pill on
+	// the light theme; here we use light backgrounds with dark text so
+	// the status pill reads as a light chip, while keeping the left
+	// indicator as a vivid green pill with light text.
+	s.Status.SuccessMessage = s.Status.SuccessMessage.
+		UnsetBackground().
+		Background(charmtone.Lichen).
+		Foreground(charmtone.Gator)
+	s.Status.InfoMessage = s.Status.InfoMessage.
+		UnsetBackground().
+		Background(charmtone.Lichen).
+		Foreground(charmtone.Gator)
+	s.Status.UpdateMessage = s.Status.UpdateMessage.
+		UnsetBackground().
+		Background(charmtone.Lichen).
+		Foreground(charmtone.Gator)
+	s.Status.WarnMessage = s.Status.WarnMessage.
+		UnsetBackground().
+		Background(charmtone.Yam).
+		Foreground(charmtone.Paprika)
+	s.Status.ErrorMessage = s.Status.ErrorMessage.
+		UnsetBackground().
+		Background(charmtone.Sriracha).
+		Foreground(charmtone.Salt)
+
+	s.Status.SuccessIndicator = s.Status.SuccessIndicator.
+		UnsetBackground().
+		Background(charmtone.Pickle).
+		Foreground(charmtone.Salt)
+	s.Status.InfoIndicator = s.Status.InfoIndicator.
+		UnsetBackground().
+		Background(charmtone.Pickle).
+		Foreground(charmtone.Salt)
+	s.Status.UpdateIndicator = s.Status.UpdateIndicator.
+		UnsetBackground().
+		Background(charmtone.Pickle).
+		Foreground(charmtone.Salt)
+	s.Status.WarnIndicator = s.Status.WarnIndicator.
+		UnsetBackground().
+		Background(charmtone.Paprika).
+		Foreground(charmtone.Salt)
+	s.Status.ErrorIndicator = s.Status.ErrorIndicator.
+		UnsetBackground().
+		Background(charmtone.Sriracha).
+		Foreground(charmtone.Salt)
+
+	// Override the Yolo-mode "!" prompt block. quickStyle's defaults
+	// were tuned for a dark surface and render as a dark teal block on
+	// the light theme; use a vivid destructive-colored block with light
+	// text in the focused state and a subtle gray block when blurred.
+	s.Editor.PromptYoloIconFocused = s.Editor.PromptYoloIconFocused.
+		UnsetBackground().
+		Background(charmtone.Sriracha).
+		Foreground(charmtone.Salt)
+	s.Editor.PromptYoloIconBlurred = s.Editor.PromptYoloIconBlurred.
+		UnsetBackground().
+		Background(charmtone.Steep).
+		Foreground(charmtone.Pepper)
+
+	// Override the MCP/LSP/Skills status dots so the online state
+	// reads as a vibrant green on the light theme (the default uses
+	// the very dark Spinach which looks near-black).
+	s.Resource.OnlineIcon = s.Resource.OnlineIcon.Foreground(charmtone.Pickle)
+	s.Resource.BusyIcon = s.Resource.BusyIcon.Foreground(charmtone.Guac)
+	s.Resource.ErrorIcon = s.Resource.ErrorIcon.Foreground(charmtone.Sriracha)
+	s.Resource.OfflineIcon = s.Resource.OfflineIcon.Foreground(charmtone.Smoke)
+	s.Resource.DisabledIcon = s.Resource.DisabledIcon.Foreground(charmtone.Squid)
+
+	// Override the logo and dialog-title gradients to run from green
+	// on the left to blue on the right. The original secondary→primary
+	// mapping collapses two near-identical greens and triggers a
+	// lipgloss.Blend1D glitch that paints a peach/yellow band near the
+	// H of CRUSH. Pickle→Malibu stays in the green→blue family with
+	// enough RGB delta to render smoothly.
+	s.Logo.TitleColorA = charmtone.Pickle
+	s.Logo.TitleColorB = charmtone.Malibu
+	s.Logo.SmallGradFromColor = charmtone.Pickle
+	s.Logo.SmallGradToColor = charmtone.Malibu
+	s.Header.LogoGradFromColor = charmtone.Pickle
+	s.Header.LogoGradToColor = charmtone.Malibu
+	s.Dialog.TitleGradFromColor = charmtone.Pickle
+	s.Dialog.TitleGradToColor = charmtone.Malibu
+
+	return s
 }
